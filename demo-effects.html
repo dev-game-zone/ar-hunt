@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Hunt - Effects Demo</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: white;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .subtitle {
+      text-align: center;
+      margin-bottom: 40px;
+      opacity: 0.9;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .demo-card {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    .demo-card:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-5px);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .demo-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+    .demo-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .demo-desc {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .info-box {
+      background: rgba(255, 255, 255, 0.15);
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 30px;
+    }
+    .info-box strong {
+      color: #ffc107;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 2rem; }
+      .container { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✨ AR Hunt Effects Demo</h1>
+    <p class="subtitle">Click cards to preview visual effects</p>
+
+    <div class="demo-grid">
+      <div class="demo-card" onclick="demoParticleBurst()">
+        <div class="demo-icon">💥</div>
+        <div class="demo-title">Particle Burst</div>
+        <div class="demo-desc">Explosive particles on collection</div>
+      </div>
+
+      <div class="demo-card" onclick="demoScreenFlash()">
+        <div class="demo-icon">⚡</div>
+        <div class="demo-title">Screen Flash</div>
+        <div class="demo-desc">Success flash effect</div>
+      </div>
+
+      <div class="demo-card" onclick="demoSparkle()">
+        <div class="demo-icon">✨</div>
+        <div class="demo-title">Sparkle</div>
+        <div class="demo-desc">Magical sparkle animation</div>
+      </div>
+
+      <div class="demo-card" onclick="demoFloatingText()">
+        <div class="demo-icon">📝</div>
+        <div class="demo-title">Floating Text</div>
+        <div class="demo-desc">Animated text notification</div>
+      </div>
+
+      <div class="demo-card" onclick="demoSound('success')">
+        <div class="demo-icon">🔊</div>
+        <div class="demo-title">Success Sound</div>
+        <div class="demo-desc">Collection audio feedback</div>
+      </div>
+
+      <div class="demo-card" onclick="demoSound('complete')">
+        <div class="demo-icon">🎵</div>
+        <div class="demo-title">Victory Sound</div>
+        <div class="demo-desc">Completion fanfare</div>
+      </div>
+
+      <div class="demo-card" onclick="demoAll()">
+        <div class="demo-icon">🎆</div>
+        <div class="demo-title">All Effects</div>
+        <div class="demo-desc">Combined experience</div>
+      </div>
+
+      <div class="demo-card" onclick="demoConfetti()">
+        <div class="demo-icon">🎉</div>
+        <div class="demo-title">Confetti</div>
+        <div class="demo-desc">Celebration animation</div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn-primary" onclick="window.location.href='test-ar.html'">
+        👁️ Test 3D Viewer
+      </button>
+      <button class="btn-primary" onclick="window.location.href='index.html'">
+        🎮 Start Hunt
+      </button>
+      <button class="btn-secondary" onclick="window.open('AR_GUIDE.md')">
+        📖 View Guide
+      </button>
+    </div>
+
+    <div class="info-box">
+      <strong>💡 Tip:</strong> These effects trigger automatically when players scan QR codes. 
+      This demo page lets you preview them without scanning.
+    </div>
+  </div>
+
+  <script src="scripts/effects.js"></script>
+  <script>
+    function demoParticleBurst() {
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      Effects.createParticleBurst(x, y, '#28a745');
+    }
+
+    function demoScreenFlash() {
+      Effects.screenFlash('rgba(40, 167, 69, 0.4)', 400);
+    }
+
+    function demoSparkle() {
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      Effects.createSparkle(x, y);
+    }
+
+    function demoFloatingText() {
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      const letters = ['A', 'B', 'C', 'D', 'E', 'L', 'N', 'O'];
+      const letter = letters[Math.floor(Math.random() * letters.length)];
+      Effects.floatingText(`Letter ${letter}!`, x - 50, y, '#ffffff');
+    }
+
+    function demoSound(type) {
+      Effects.playSound(type);
+    }
+
+    function demoAll() {
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      
+      Effects.screenFlash('rgba(40, 167, 69, 0.4)', 400);
+      setTimeout(() => Effects.createParticleBurst(x, y, '#28a745'), 100);
+      setTimeout(() => Effects.createSparkle(x, y), 200);
+      setTimeout(() => Effects.floatingText('Letter Found!', x - 80, y, '#ffffff'), 300);
+      setTimeout(() => Effects.playSound('success'), 400);
+    }
+
+    function demoConfetti() {
+      // Simple confetti effect using particles
+      for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+          const x = Math.random() * window.innerWidth;
+          const y = Math.random() * window.innerHeight / 2;
+          const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#F8B739', '#98D8C8', '#F7DC6F'];
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          Effects.createParticleBurst(x, y, color);
+        }, i * 150);
+      }
+      setTimeout(() => Effects.playSound('complete'), 500);
+    }
+
+    // Welcome animation
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const x = window.innerWidth / 2;
+        const y = 100;
+        Effects.createSparkle(x, y);
+      }, 500);
+    });
+  </script>
+</body>
+</html>

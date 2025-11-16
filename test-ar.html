@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Hunt - Test 3D Viewer</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .viewer-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    model-viewer {
+      width: 100%;
+      height: 500px;
+      background-color: #f0f0f0;
+      border-radius: 8px;
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #28a745;
+      color: white;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #1e7e34;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e7f3ff;
+      border-left: 4px solid #007bff;
+      border-radius: 4px;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 AR Hunt - 3D Viewer Test</h1>
+
+  <div class="instructions">
+    <h2>📋 Test Instructions</h2>
+    <p>This page lets you test the 3D viewer and AR features without scanning QR codes.</p>
+    <ol>
+      <li><strong>Desktop</strong>: Rotate and zoom the model with mouse</li>
+      <li><strong>Mobile</strong>: Tap "View in AR" to see it in augmented reality</li>
+      <li>Use the buttons below to test different letters</li>
+    </ol>
+    <p><strong>⚠️ AR Mode requires:</strong></p>
+    <ul>
+      <li>iOS: Safari browser, iPhone 6S or newer</li>
+      <li>Android: Chrome browser with ARCore support</li>
+      <li>HTTPS connection (works on GitHub Pages)</li>
+    </ul>
+  </div>
+
+  <div class="viewer-container">
+    <h2 id="viewer-title">Letter A</h2>
+    <model-viewer 
+      id="test-viewer"
+      src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+      alt="3D Letter Model"
+      camera-controls
+      touch-action="pan-y"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      shadow-intensity="1"
+      auto-rotate
+      auto-rotate-delay="2000"
+      rotation-per-second="30deg">
+      <button slot="ar-button" style="background:#28a745; color:white; border:none; padding:16px 32px; font-size:1.2rem; font-weight:bold; border-radius:8px; cursor:pointer; margin-top:20px; box-shadow:0 4px 12px rgba(40,167,69,0.4);">
+        👁️ View in AR
+      </button>
+    </model-viewer>
+
+    <div class="controls">
+      <button onclick="testLetter('A')">Test Letter A</button>
+      <button onclick="testLetter('B')">Test Letter B</button>
+      <button onclick="testLetter('D')">Test Letter D</button>
+      <button onclick="testLetter('N')">Test Letter N</button>
+      <button onclick="testLetter('E')">Test Letter E</button>
+      <button onclick="testLetter('L')">Test Letter L</button>
+    </div>
+
+    <div class="status" id="status">
+      <strong>Status:</strong> Ready to test! Click a letter button above.
+    </div>
+  </div>
+
+  <div class="instructions" style="margin-top: 20px;">
+    <h2>🎨 Customization</h2>
+    <p>To use your own 3D models:</p>
+    <ol>
+      <li>Create or download <code>.glb</code> files for each letter</li>
+      <li>Place them in the <code>/models/</code> folder</li>
+      <li>Name them: <code>letter_A.glb</code>, <code>letter_B.glb</code>, etc.</li>
+      <li>Update <code>scripts/ar-models.js</code> to point to your models</li>
+    </ol>
+    <p>See <code>AR_GUIDE.md</code> for detailed instructions.</p>
+  </div>
+
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <script src="scripts/ar-models.js"></script>
+  <script>
+    const viewer = document.getElementById('test-viewer');
+    const title = document.getElementById('viewer-title');
+    const status = document.getElementById('status');
+
+    function testLetter(letter) {
+      title.textContent = `Letter ${letter}`;
+      
+      // Get model URL from config
+      let modelUrl = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+      
+      if (typeof AR_CONFIG !== 'undefined') {
+        const config = AR_CONFIG.getModelForLetter(letter);
+        modelUrl = config.src;
+        status.innerHTML = `<strong>Status:</strong> Loaded model for letter <strong>${letter}</strong><br><em>Color: ${config.color}</em>`;
+      } else {
+        status.innerHTML = `<strong>Status:</strong> Using placeholder model (AR_CONFIG not loaded)`;
+      }
+      
+      viewer.src = modelUrl;
+      
+      // Add some visual feedback
+      viewer.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        viewer.style.transform = 'scale(1)';
+      }, 100);
+      viewer.style.transition = 'transform 0.2s ease';
+    }
+
+    // Test browser compatibility
+    window.addEventListener('DOMContentLoaded', () => {
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      const isChrome = /Chrome/.test(navigator.userAgent);
+      
+      let arStatus = '';
+      if (isIOS && isSafari) {
+        arStatus = '✅ AR supported (iOS Safari - AR Quick Look)';
+      } else if (isAndroid && isChrome) {
+        arStatus = '✅ AR supported (Android Chrome - Scene Viewer)';
+      } else if (isIOS && !isSafari) {
+        arStatus = '⚠️ Please use Safari for AR on iOS';
+      } else if (isAndroid && !isChrome) {
+        arStatus = '⚠️ Please use Chrome for AR on Android';
+      } else {
+        arStatus = 'ℹ️ AR not available on desktop (3D viewer works)';
+      }
+      
+      status.innerHTML += `<br><br><strong>Your Device:</strong> ${arStatus}`;
+    });
+
+    // Load first letter on page load
+    setTimeout(() => testLetter('A'), 500);
+  </script>
+</body>
+</html>

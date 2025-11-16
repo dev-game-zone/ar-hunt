@@ -35,6 +35,40 @@
       font-weight: bold;
       color: #c00;
     }
+    .letter-box {
+      cursor: pointer;
+      position: relative;
+      transition: all 0.25s ease-in-out;
+    }
+    .letter-box:hover:not(.collected) {
+      opacity: 0.7;
+    }
+    .letter-box.collected:hover {
+      transform: scale(1.15) !important;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+    .letter-box.collected::after {
+      content: '👁️';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      font-size: 0.7rem;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .letter-box.collected:hover::after {
+      opacity: 1;
+    }
+    #ar-modal-game {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 10000;
+    }
   </style>
 </head>
 <body class="game">
@@ -59,8 +93,36 @@
 
 <canvas id="confetti-canvas"></canvas>
 
+<!-- AR Viewer Modal for Game Page -->
+<div id="ar-modal-game">
+  <button id="close-ar-game" style="position:absolute; top:20px; right:20px; z-index:10001; padding:12px 24px; background:#fff; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.3);">Close</button>
+  <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    <h2 id="ar-title-game" style="color:#fff; margin-bottom:20px; font-size:2rem; text-align:center;">Letter Preview</h2>
+    <model-viewer id="ar-viewer-game"
+      style="width:90%; max-width:600px; height:60vh; background-color:transparent;"
+      camera-controls
+      touch-action="pan-y"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      shadow-intensity="1"
+      auto-rotate
+      auto-rotate-delay="1000"
+      rotation-per-second="30deg">
+      <div slot="progress-bar" style="display:none;"></div>
+      <button slot="ar-button" style="background:#28a745; color:white; border:none; padding:16px 32px; font-size:1.2rem; font-weight:bold; border-radius:8px; cursor:pointer; margin-top:20px; box-shadow:0 4px 12px rgba(40,167,69,0.4);">
+        👁️ View in AR
+      </button>
+    </model-viewer>
+    <p style="color:#fff; margin-top:20px; font-size:1.1rem; text-align:center;">Tap and drag to rotate • Pinch to zoom</p>
+  </div>
+</div>
+
 <script src="../../scripts/config.js"></script>
 <script src="../../scripts/app.js"></script>
+<script src="../../scripts/ar-models.js"></script>
+<script src="../../scripts/effects.js"></script>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 <script>
 window.addEventListener("DOMContentLoaded", async () => {
   const container = document.getElementById("letters-container");
@@ -151,12 +213,19 @@ window.addEventListener("DOMContentLoaded", async () => {
     const boxes = container.querySelectorAll(".letter-box");
     let countFound = 0;
 
-    boxes.forEach(box => {
-      if (found.includes(box.textContent)) {
+    boxes.forEach((box, index) => {
+      const letter = phrase[index];
+      if (found.includes(letter)) {
         box.classList.add("collected");
         countFound++;
+        
+        // Add click handler for 3D preview
+        box.onclick = () => show3DPreview(letter);
+        box.style.cursor = 'pointer';
       } else {
         box.classList.remove("collected");
+        box.onclick = null;
+        box.style.cursor = 'default';
       }
     });
 
@@ -179,6 +248,29 @@ window.addEventListener("DOMContentLoaded", async () => {
     } else {
       completionCodeEl.textContent = "----";
     }
+  }
+
+  // 3D Preview function
+  function show3DPreview(letter) {
+    const modal = document.getElementById("ar-modal-game");
+    const arViewer = document.getElementById("ar-viewer-game");
+    const arTitle = document.getElementById("ar-title-game");
+    const closeBtn = document.getElementById("close-ar-game");
+
+    // Get model configuration
+    if (typeof AR_CONFIG !== 'undefined') {
+      const modelConfig = AR_CONFIG.getModelForLetter(letter);
+      arViewer.src = modelConfig.src;
+    } else {
+      arViewer.src = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+    }
+    
+    arTitle.textContent = `Letter ${letter} 🔤`;
+    modal.style.display = "flex";
+
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+    };
   }
 
   completionCodeEl.addEventListener("click", () => {

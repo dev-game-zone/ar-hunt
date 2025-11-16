@@ -62,9 +62,37 @@
   </div>
 </main>
 
+<!-- AR Viewer Modal -->
+<div id="ar-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:10000; display:none;">
+  <button id="close-ar" style="position:absolute; top:20px; right:20px; z-index:10001; padding:12px 24px; background:#fff; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.3);">Close</button>
+  <div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+    <h2 id="ar-title" style="color:#fff; margin-bottom:20px; font-size:2rem; text-align:center;">Letter Found!</h2>
+    <model-viewer id="ar-viewer"
+      style="width:90%; max-width:600px; height:60vh; background-color:transparent;"
+      camera-controls
+      touch-action="pan-y"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      ar-scale="auto"
+      shadow-intensity="1"
+      auto-rotate
+      auto-rotate-delay="1000"
+      rotation-per-second="30deg">
+      <div slot="progress-bar" style="display:none;"></div>
+      <button slot="ar-button" id="ar-button" style="background:#28a745; color:white; border:none; padding:16px 32px; font-size:1.2rem; font-weight:bold; border-radius:8px; cursor:pointer; margin-top:20px; box-shadow:0 4px 12px rgba(40,167,69,0.4);">
+        👁️ View in AR
+      </button>
+    </model-viewer>
+    <p style="color:#fff; margin-top:20px; font-size:1.1rem; text-align:center;">Tap and drag to rotate • Pinch to zoom</p>
+  </div>
+</div>
+
 <script src="../../scripts/config.js"></script>
 <script src="../../scripts/app.js"></script>
+<script src="../../scripts/ar-models.js"></script>
+<script src="../../scripts/effects.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 <script>
 window.addEventListener("DOMContentLoaded", () => {
   const msg = document.getElementById("msg");
@@ -110,14 +138,29 @@ window.addEventListener("DOMContentLoaded", () => {
       async (decodedText) => {
         const mapping = CONFIG.LETTER_MAP || {};
         const letter = mapping[decodedText];
-        if (letter) {
+        if (letter && letter !== "*") {
           store.add(letter);
           msg.textContent = `✓ Found letter: ${letter}`;
           msg.className = "success";
 
-          setTimeout(() => {
-            window.location.href = CONFIG.BASE_PATH + "pages/game/game.html";
-          }, 1500);
+          // Visual effects
+          if (typeof Effects !== 'undefined') {
+            Effects.screenFlash('rgba(40, 167, 69, 0.3)', 400);
+            Effects.playSound('success');
+            Effects.createSparkle(window.innerWidth / 2, window.innerHeight / 2);
+            Effects.floatingText(`Letter ${letter}!`, window.innerWidth / 2 - 50, window.innerHeight / 2);
+          }
+
+          // Stop scanner and show AR viewer
+          reader.stop().then(() => {
+            setTimeout(() => showARViewer(letter), 800);
+          }).catch(e => {
+            console.error("Error stopping scanner:", e);
+            setTimeout(() => showARViewer(letter), 800);
+          });
+        } else if (letter === "*") {
+          msg.textContent = "⚠️ This QR code is not part of the hunt.";
+          msg.className = "warning";
         } else {
           msg.textContent = "⚠️ Unknown QR code.";
           msg.className = "warning";
@@ -137,6 +180,42 @@ window.addEventListener("DOMContentLoaded", () => {
 
   retryBtn.onclick = () => window.location.reload();
   backBtn.onclick = () => window.location.href = CONFIG.BASE_PATH + "pages/game/game.html";
+
+  // AR Viewer functions
+  function showARViewer(letter) {
+    const modal = document.getElementById("ar-modal");
+    const arViewer = document.getElementById("ar-viewer");
+    const arTitle = document.getElementById("ar-title");
+    const closeBtn = document.getElementById("close-ar");
+
+    // Configure 3D model based on letter
+    const modelUrl = get3DModelUrl(letter);
+    arViewer.src = modelUrl;
+    arTitle.textContent = `Letter ${letter} Found! 🎉`;
+
+    // Show modal
+    modal.style.display = "flex";
+    readerContainer.style.display = "none";
+
+    // Close handler
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+      setTimeout(() => {
+        window.location.href = CONFIG.BASE_PATH + "pages/game/game.html";
+      }, 300);
+    };
+  }
+
+  function get3DModelUrl(letter) {
+    // Use the AR_CONFIG from ar-models.js
+    if (typeof AR_CONFIG !== 'undefined') {
+      const modelConfig = AR_CONFIG.getModelForLetter(letter);
+      return modelConfig.src;
+    }
+    
+    // Fallback to default model
+    return 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+  }
 });
 </script>
 </body>
