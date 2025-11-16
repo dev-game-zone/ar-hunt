@@ -41,6 +41,31 @@ const AR_CONFIG = {
             animated: true,
             description: '🦩 Flying stork'
         },
+        'fox': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Fox/glTF/Fox.gltf',
+            animated: true,
+            description: '🦊 Running fox'
+        },
+        'cesiumman': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/CesiumMan/glTF/CesiumMan.gltf',
+            animated: true,
+            description: '🚶 Walking man'
+        },
+        'brainsteam': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/BrainStem/glTF/BrainStem.gltf',
+            animated: true,
+            description: '🧠 Rotating brain'
+        },
+        'animatedsquare': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/AnimatedMorphCube/glTF/AnimatedMorphCube.gltf',
+            animated: true,
+            description: '🔷 Morphing cube'
+        },
+        'riggeds': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/RiggedSimple/glTF/RiggedSimple.gltf',
+            animated: true,
+            description: '🎭 Animated figure'
+        },
 
         // Static models (no animation, but still cool)
         'helmet': {
@@ -79,7 +104,7 @@ const AR_CONFIG = {
     assignmentMode: 'sequential', // Change to 'random' for random models each time
 
     // Prefer animated models?
-    preferAnimated: false, // Set to true to favor animated models (only 5 available)
+    preferAnimated: true, // Set to true to favor animated models (10 available)
 
     // Model customization per letter
     getModelForLetter(letter) {
