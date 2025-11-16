@@ -81,9 +81,6 @@ const AR_CONFIG = {
     // Prefer animated models?
     preferAnimated: true, // Set to true to favor animated models
 
-    // Auto-activate AR mode?
-    autoActivateAR: true, // Set to true to automatically trigger AR on mobile devices
-
     // Model customization per letter
     getModelForLetter(letter) {
         // Get all available models

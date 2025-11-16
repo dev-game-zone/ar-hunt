@@ -198,22 +198,6 @@ window.addEventListener("DOMContentLoaded", () => {
     modal.style.display = "flex";
     readerContainer.style.display = "none";
 
-    // Auto-activate AR on mobile devices if enabled
-    if (typeof AR_CONFIG !== 'undefined' && AR_CONFIG.autoActivateAR) {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        // Wait for model to load, then trigger AR by clicking the AR button
-        arViewer.addEventListener('load', () => {
-          setTimeout(() => {
-            const arButton = arViewer.querySelector('[slot="ar-button"]');
-            if (arButton) {
-              arButton.click();
-            }
-          }, 1500); // Delay for smooth transition
-        }, { once: true });
-      }
-    }
-
     // Close handler
     closeBtn.onclick = () => {
       modal.style.display = "none";
