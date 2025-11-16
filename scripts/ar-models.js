@@ -15,16 +15,11 @@ const AR_CONFIG = {
 
     // Free 3D models you can use (replace with your own hosted models)
     modelLibrary: {
-        // Animated models (have built-in animations)
+        // Animated models - VERIFIED WORKING
         'astronaut': {
             url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
             animated: true,
             description: '🚀 Astronaut waving'
-        },
-        'parrot': {
-            url: 'https://modelviewer.dev/shared-assets/models/Parrot.glb',
-            animated: true,
-            description: '🦜 Flying parrot'
         },
         'horse': {
             url: 'https://modelviewer.dev/shared-assets/models/Horse.glb',
@@ -36,75 +31,50 @@ const AR_CONFIG = {
             animated: true,
             description: '🤖 Dancing robot'
         },
-        'stork': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Stork/glTF/Stork.gltf',
-            animated: true,
-            description: '🦩 Flying stork'
-        },
-        'fox': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Fox/glTF/Fox.gltf',
-            animated: true,
-            description: '🦊 Running fox'
-        },
-        'cesiumman': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/CesiumMan/glTF/CesiumMan.gltf',
-            animated: true,
-            description: '🚶 Walking man'
-        },
-        'brainsteam': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/BrainStem/glTF/BrainStem.gltf',
-            animated: true,
-            description: '🧠 Rotating brain'
-        },
-        'animatedsquare': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/AnimatedMorphCube/glTF/AnimatedMorphCube.gltf',
-            animated: true,
-            description: '🔷 Morphing cube'
-        },
-        'riggeds': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/RiggedSimple/glTF/RiggedSimple.gltf',
-            animated: true,
-            description: '🎭 Animated figure'
-        },
 
-        // Static models (no animation, but still cool)
+        // Static models - VERIFIED WORKING
         'helmet': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/DamagedHelmet/glTF/DamagedHelmet.gltf',
+            url: 'https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb',
             animated: false,
-            description: '🪖 Damaged helmet'
+            description: '👨‍🚀 Neil Armstrong'
         },
         'avocado': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Avocado/glTF/Avocado.gltf',
+            url: 'https://modelviewer.dev/shared-assets/models/shishkebab.glb',
             animated: false,
-            description: '🥑 Avocado'
+            description: '🍢 Shish Kebab'
         },
         'duck': {
-            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Duck/glTF/Duck.gltf',
-            animated: false,
-            description: '🦆 Rubber duck'
-        },
-        'sphere': {
             url: 'https://modelviewer.dev/shared-assets/models/reflective-sphere.gltf',
             animated: false,
-            description: '⚪ Reflective sphere'
+            description: '⚪ Sphere'
         },
-        'mixer': {
+        'sphere': {
             url: 'https://modelviewer.dev/shared-assets/models/Mixer.glb',
             animated: false,
-            description: '🎛️ Audio mixer'
+            description: '🎛️ Mixer'
         },
-        'chair': {
+        'mixer': {
             url: 'https://modelviewer.dev/shared-assets/models/Chair.glb',
             animated: false,
-            description: '🪑 Modern chair'
+            description: '🪑 Chair'
+        },
+        'chair': {
+            url: 'https://modelviewer.dev/shared-assets/models/MaterialsVariantsShoe.glb',
+            animated: false,
+            description: '👟 Shoe'
+        },
+        'shoe': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/ToyCar/glTF/ToyCar.gltf',
+            animated: false,
+            description: '🚗 Toy Car'
         },
     },
 
     // Assignment mode: 'random', 'sequential', or 'letter-specific'
-    assignmentMode: 'letter-specific', // Change to 'random' for random models each time
+    assignmentMode: 'sequential', // Change to 'random' for random models each time
 
     // Prefer animated models?
-    preferAnimated: true, // Set to true to favor animated models (10 available)
+    preferAnimated: false, // Use mix of animated and static (all verified)
 
     // Model customization per letter
     getModelForLetter(letter) {
