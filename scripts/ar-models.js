@@ -15,24 +15,124 @@ const AR_CONFIG = {
 
     // Free 3D models you can use (replace with your own hosted models)
     modelLibrary: {
-        // Google's free sample models
-        'default': 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
-        'letter_basic': 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/DamagedHelmet/glTF/DamagedHelmet.gltf',
-        'trophy': 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Avocado/glTF/Avocado.gltf',
+        // Animated models (have built-in animations)
+        'astronaut': {
+            url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+            animated: true,
+            description: '🚀 Astronaut waving'
+        },
+        'parrot': {
+            url: 'https://modelviewer.dev/shared-assets/models/Parrot.glb',
+            animated: true,
+            description: '🦜 Flying parrot'
+        },
+        'horse': {
+            url: 'https://modelviewer.dev/shared-assets/models/Horse.glb',
+            animated: true,
+            description: '🐴 Galloping horse'
+        },
+        'robot': {
+            url: 'https://modelviewer.dev/shared-assets/models/RobotExpressive/RobotExpressive.glb',
+            animated: true,
+            description: '🤖 Dancing robot'
+        },
+        'stork': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Stork/glTF/Stork.gltf',
+            animated: true,
+            description: '🦩 Flying stork'
+        },
+
+        // Static models (no animation, but still cool)
+        'helmet': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/DamagedHelmet/glTF/DamagedHelmet.gltf',
+            animated: false,
+            description: '🪖 Damaged helmet'
+        },
+        'avocado': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Avocado/glTF/Avocado.gltf',
+            animated: false,
+            description: '🥑 Avocado'
+        },
+        'duck': {
+            url: 'https://modelviewer.dev/shared-assets/models/glTF-Sample-Models/2.0/Duck/glTF/Duck.gltf',
+            animated: false,
+            description: '🦆 Rubber duck'
+        },
+        'sphere': {
+            url: 'https://modelviewer.dev/shared-assets/models/reflective-sphere.gltf',
+            animated: false,
+            description: '⚪ Reflective sphere'
+        },
+        'mixer': {
+            url: 'https://modelviewer.dev/shared-assets/models/Mixer.glb',
+            animated: false,
+            description: '🎛️ Audio mixer'
+        },
+        'chair': {
+            url: 'https://modelviewer.dev/shared-assets/models/Chair.glb',
+            animated: false,
+            description: '🪑 Modern chair'
+        },
     },
+
+    // Assignment mode: 'random', 'sequential', or 'letter-specific'
+    assignmentMode: 'sequential', // Change to 'random' for random models each time
+
+    // Prefer animated models?
+    preferAnimated: true, // Set to true to favor animated models
+
+    // Auto-activate AR mode?
+    autoActivateAR: true, // Set to true to automatically trigger AR on mobile devices
 
     // Model customization per letter
     getModelForLetter(letter) {
-        // For now, using a simple approach
+        // Get all available models
+        const modelEntries = Object.entries(this.modelLibrary);
+        let selectedModel;
+
+        // Filter for animated if preferred
+        const availableModels = this.preferAnimated
+            ? modelEntries.filter(([key, model]) => model.animated)
+            : modelEntries;
+
+        // Fall back to all models if no animated ones available
+        const modelsToUse = availableModels.length > 0 ? availableModels : modelEntries;
+
+        if (this.assignmentMode === 'random') {
+            // Pick a random model each time (different every scan)
+            const randomIndex = Math.floor(Math.random() * modelsToUse.length);
+            selectedModel = modelsToUse[randomIndex][1];
+        } else if (this.assignmentMode === 'sequential') {
+            // Assign models based on letter position (consistent per letter)
+            const letterIndex = letter.charCodeAt(0) - 65; // A=0, B=1, etc.
+            selectedModel = modelsToUse[letterIndex % modelsToUse.length][1];
+        } else {
+            // letter-specific: you can map specific letters to specific models
+            const letterModelMap = {
+                'A': 'astronaut',
+                'D': 'parrot',
+                'N': 'horse',
+                'E': 'robot',
+                'L': 'stork',
+                'I': 'mixer',
+                'O': 'avocado',
+                // Add more mappings as needed
+            };
+            const modelKey = letterModelMap[letter] || 'astronaut';
+            selectedModel = this.modelLibrary[modelKey];
+        }
+
         // You can upload custom GLB files for each letter to your repo
         // and reference them here like: `../../models/letter_${letter}.glb`
 
         return {
-            src: this.modelLibrary.default,
+            src: selectedModel.url,
             color: this.letterColors[letter] || '#007bff',
             scale: '1 1 1',
             rotation: '0 0 0',
-            animation: 'auto-rotate'
+            animation: 'auto-rotate',
+            animated: selectedModel.animated,
+            description: selectedModel.description
         };
     },
 

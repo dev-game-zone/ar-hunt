@@ -106,7 +106,8 @@
       shadow-intensity="1"
       auto-rotate
       auto-rotate-delay="2000"
-      rotation-per-second="30deg">
+      rotation-per-second="30deg"
+      autoplay>
       <button slot="ar-button" style="background:#28a745; color:white; border:none; padding:16px 32px; font-size:1.2rem; font-weight:bold; border-radius:8px; cursor:pointer; margin-top:20px; box-shadow:0 4px 12px rgba(40,167,69,0.4);">
         👁️ View in AR
       </button>
@@ -119,6 +120,9 @@
       <button onclick="testLetter('N')">Test Letter N</button>
       <button onclick="testLetter('E')">Test Letter E</button>
       <button onclick="testLetter('L')">Test Letter L</button>
+      <button onclick="testModel('parrot')">🦜 Parrot</button>
+      <button onclick="testModel('robot')">🤖 Robot</button>
+      <button onclick="testModel('horse')">🐴 Horse</button>
     </div>
 
     <div class="status" id="status">
@@ -150,11 +154,14 @@
       
       // Get model URL from config
       let modelUrl = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+      let description = 'Placeholder model';
       
       if (typeof AR_CONFIG !== 'undefined') {
         const config = AR_CONFIG.getModelForLetter(letter);
         modelUrl = config.src;
-        status.innerHTML = `<strong>Status:</strong> Loaded model for letter <strong>${letter}</strong><br><em>Color: ${config.color}</em>`;
+        description = config.description || '';
+        const animatedText = config.animated ? ' (Animated ✨)' : '';
+        status.innerHTML = `<strong>Status:</strong> Loaded model for letter <strong>${letter}</strong><br><em>${description}${animatedText}</em><br><em>Color: ${config.color}</em>`;
       } else {
         status.innerHTML = `<strong>Status:</strong> Using placeholder model (AR_CONFIG not loaded)`;
       }
@@ -167,6 +174,21 @@
         viewer.style.transform = 'scale(1)';
       }, 100);
       viewer.style.transition = 'transform 0.2s ease';
+    }
+
+    function testModel(modelName) {
+      if (typeof AR_CONFIG !== 'undefined' && AR_CONFIG.modelLibrary[modelName]) {
+        const model = AR_CONFIG.modelLibrary[modelName];
+        title.textContent = model.description || modelName;
+        viewer.src = model.url;
+        const animatedText = model.animated ? ' (Animated ✨)' : '';
+        status.innerHTML = `<strong>Status:</strong> ${model.description}${animatedText}`;
+        
+        viewer.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          viewer.style.transform = 'scale(1)';
+        }, 100);
+      }
     }
 
     // Test browser compatibility
