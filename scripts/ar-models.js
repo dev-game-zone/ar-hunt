@@ -79,7 +79,7 @@ const AR_CONFIG = {
     assignmentMode: 'sequential', // Change to 'random' for random models each time
 
     // Prefer animated models?
-    preferAnimated: true, // Set to true to favor animated models
+    preferAnimated: false, // Set to true to favor animated models (only 5 available)
 
     // Model customization per letter
     getModelForLetter(letter) {
