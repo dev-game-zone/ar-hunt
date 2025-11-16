@@ -202,11 +202,14 @@ window.addEventListener("DOMContentLoaded", () => {
     if (typeof AR_CONFIG !== 'undefined' && AR_CONFIG.autoActivateAR) {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        // Wait for model to load, then trigger AR
+        // Wait for model to load, then trigger AR by clicking the AR button
         arViewer.addEventListener('load', () => {
           setTimeout(() => {
-            arViewer.activateAR();
-          }, 1000); // Small delay for smooth transition
+            const arButton = arViewer.querySelector('[slot="ar-button"]');
+            if (arButton) {
+              arButton.click();
+            }
+          }, 1500); // Delay for smooth transition
         }, { once: true });
       }
     }
