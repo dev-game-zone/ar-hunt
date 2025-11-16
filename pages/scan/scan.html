@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scavenger Hunt – Scan</title>
+  <link rel="stylesheet" href="../../styles/styles.css">
+  <link rel="icon" type="image/png" href="../../favicon.png">
+  <style>
+    #reader-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px auto;
+      max-width: 90vw;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    main {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 16px;
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      h2 {
+        font-size: 1.4rem;
+      }
+      #reader {
+        max-width: 280px;
+      }
+    }
+
+    .locked-msg {
+      margin-top: 12px;
+      font-weight: bold;
+      color: #c00;
+    }
+  </style>
+</head>
+<body class="scan">
+<main>
+  <h2>Scan a QR Code</h2>
+
+  <div id="reader-container">
+    <div id="reader"></div>
+  </div>
+
+  <p id="msg"></p>
+  <p id="locked-msg" class="locked-msg" style="display:none;">Hunt completed — scanning disabled.</p>
+
+  <div class="button-group">
+    <button id="retry" style="display:none;">Retry Camera</button>
+    <button id="back">Back to Game</button>
+  </div>
+</main>
+
+<script src="../../scripts/config.js"></script>
+<script src="../../scripts/app.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  const msg = document.getElementById("msg");
+  const backBtn = document.getElementById("back");
+  const retryBtn = document.getElementById("retry");
+  const readerContainer = document.getElementById("reader-container");
+  const lockedMsg = document.getElementById("locked-msg");
+
+  // Access guard
+  if (sessionStorage.getItem("access") !== "granted") {
+    window.location.href = CONFIG.BASE_PATH + "index.html";
+    return;
+  }
+
+  // If hunt completed, lock scanning
+  if (progress.isCompleted()) {
+    lockedMsg.style.display = "block";
+    readerContainer.style.display = "none";
+    retryBtn.style.display = "none";
+    return;
+  }
+
+  function showCameraError() {
+    readerContainer.innerHTML = `
+      <div style="text-align:center;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="80" height="80" style="margin-bottom:10px;">
+          <circle cx="32" cy="32" r="30" fill="none" stroke="#ff0000" stroke-width="4"/>
+          <path d="M16 48L48 16" stroke="#000" stroke-width="4"/>
+          <rect x="18" y="20" width="28" height="20" rx="3" fill="none" stroke="#000" stroke-width="3"/>
+          <circle cx="32" cy="30" r="6" fill="#000"/>
+        </svg>
+        <p style="font-weight:bold; color:#ff0000;">Camera access unavailable or disabled.</p>
+      </div>
+    `;
+    retryBtn.style.display = "inline-block";
+  }
+
+  try {
+    const reader = new Html5Qrcode("reader");
+    reader.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      async (decodedText) => {
+        const mapping = CONFIG.LETTER_MAP || {};
+        const letter = mapping[decodedText];
+        if (letter) {
+          store.add(letter);
+          msg.textContent = `✓ Found letter: ${letter}`;
+          msg.className = "success";
+
+          setTimeout(() => {
+            window.location.href = CONFIG.BASE_PATH + "pages/game/game.html";
+          }, 1500);
+        } else {
+          msg.textContent = "⚠️ Unknown QR code.";
+          msg.className = "warning";
+        }
+      },
+      (err) => {
+        // ignore scanning errors
+      }
+    ).catch(e => {
+      msg.textContent = "";
+      showCameraError();
+    });
+  } catch (e) {
+    msg.textContent = "";
+    showCameraError();
+  }
+
+  retryBtn.onclick = () => window.location.reload();
+  backBtn.onclick = () => window.location.href = CONFIG.BASE_PATH + "pages/game/game.html";
+});
+</script>
+</body>
+</html>

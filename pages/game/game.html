@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scavenger Hunt – Game</title>
+  <link rel="stylesheet" href="../../styles/styles.css">
+  <link rel="icon" type="image/png" href="../../favicon.png">
+  <style>
+    main {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      overflow-x: hidden;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #fff;
+      overflow-x: hidden;
+    }
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    .locked-msg {
+      margin-top: 12px;
+      font-weight: bold;
+      color: #c00;
+    }
+  </style>
+</head>
+<body class="game">
+<main>
+  <h2>Collect the Letters!</h2>
+
+  <div id="letters-container"></div>
+  <div id="completion">
+    <p class="progress-text" id="progress-text"></p>
+    <p class="completion-label">Completion Code:</p>
+    <p id="completion-code">----</p>
+    <p class="copy-msg" id="copy-msg"></p>
+  </div>
+
+  <p id="locked-msg" class="locked-msg" style="display:none;">Hunt completed — reset to play again.</p>
+
+  <div class="button-group">
+    <button id="scan">Scan QR Code</button>
+    <button id="reset">Reset Progress</button>
+  </div>
+</main>
+
+<canvas id="confetti-canvas"></canvas>
+
+<script src="../../scripts/config.js"></script>
+<script src="../../scripts/app.js"></script>
+<script>
+window.addEventListener("DOMContentLoaded", async () => {
+  const container = document.getElementById("letters-container");
+  const progressText = document.getElementById("progress-text");
+  const completionCodeEl = document.getElementById("completion-code");
+  const copyMsg = document.getElementById("copy-msg");
+  const lockedMsg = document.getElementById("locked-msg");
+  const scanBtn = document.getElementById("scan");
+
+  if (sessionStorage.getItem("access") !== "granted") {
+    window.location.href = CONFIG.BASE_PATH + "index.html";
+    return;
+  }
+
+  const phrase = CONFIG.HIDDEN_PHRASE.split("");
+  container.innerHTML = "";
+  phrase.forEach(letter => {
+    const box = document.createElement("div");
+    box.classList.add("letter-box");
+    box.textContent = letter;
+    container.appendChild(box);
+  });
+
+  let confettiAnimationId;
+
+  function triggerConfetti() {
+    const canvas = document.getElementById("confetti-canvas");
+    const ctx = canvas.getContext("2d");
+    const confettiCount = 150;
+    const confetti = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    for (let i = 0; i < confettiCount; i++) {
+      confetti.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        r: Math.random() * 6 + 2,
+        d: Math.random() * confettiCount,
+        color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+        tilt: Math.random() * 10 - 10
+      });
+    }
+
+    function drawConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confetti.forEach(c => {
+        ctx.beginPath();
+        ctx.fillStyle = c.color;
+        ctx.ellipse(c.x, c.y, c.r, c.r / 2, Math.PI / 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+      updateConfetti();
+      confettiAnimationId = requestAnimationFrame(drawConfetti);
+    }
+
+    function updateConfetti() {
+      confetti.forEach(c => {
+        c.y += Math.cos(c.d) + 1 + c.r / 2;
+        c.x += Math.sin(c.d);
+        if (c.y > canvas.height) {
+          c.y = -10;
+          c.x = Math.random() * canvas.width;
+        }
+      });
+    }
+
+    drawConfetti();
+    setTimeout(() => stopConfetti(), 5000);
+  }
+
+  function stopConfetti() {
+    if (confettiAnimationId) {
+      cancelAnimationFrame(confettiAnimationId);
+      const canvas = document.getElementById("confetti-canvas");
+      canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+      confettiAnimationId = null;
+    }
+  }
+
+  function updateProgress() {
+    const found = store.letters;
+    const boxes = container.querySelectorAll(".letter-box");
+    let countFound = 0;
+
+    boxes.forEach(box => {
+      if (found.includes(box.textContent)) {
+        box.classList.add("collected");
+        countFound++;
+      } else {
+        box.classList.remove("collected");
+      }
+    });
+
+    progressText.textContent = `Found ${countFound} of ${phrase.length}`;
+
+    if (progress.isCompleted()) {
+      completionCodeEl.textContent = progress.getCompletionCode();
+      scanBtn.disabled = true;
+      lockedMsg.style.display = "block";
+      return;
+    }
+
+    if (countFound === phrase.length) {
+      generateCompletionCode(CONFIG.HIDDEN_PHRASE).then(code => {
+        completionCodeEl.textContent = code;
+        triggerConfetti();
+        scanBtn.disabled = true;
+        lockedMsg.style.display = "block";
+      });
+    } else {
+      completionCodeEl.textContent = "----";
+    }
+  }
+
+  completionCodeEl.addEventListener("click", () => {
+    const code = completionCodeEl.textContent;
+    if (code && code !== "----") {
+      navigator.clipboard.writeText(code);
+      copyMsg.textContent = "✓ Copied!";
+      setTimeout(() => (copyMsg.textContent = ""), 1500);
+    }
+  });
+
+  document.getElementById("scan").addEventListener("click", () => {
+    if (!progress.isCompleted()) {
+      window.location.href = CONFIG.BASE_PATH + "pages/scan/scan.html";
+    }
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    if (confirm("Reset your progress?")) {
+      store.reset();
+      progress.clearCompleted();
+      progress.clearCompletionCode();
+      sessionStorage.removeItem("access");
+      stopConfetti();
+      // Mobile-safe redirect
+      setTimeout(() => {
+        window.location.replace(CONFIG.BASE_PATH + "index.html");
+      }, 50);
+    }
+  });
+
+  updateProgress();
+});
+</script>
+</body>
+</html>

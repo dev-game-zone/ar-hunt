@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scavenger Hunt – Admin Panel</title>
+<link rel="stylesheet" href="../../styles/styles.css">
+<link rel="icon" type="image/png" href="../../favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ================================
+   Admin PIN input - center aligned
+================================= */
+body.admin #adminPin {
+  text-align: center;
+}
+
+/* ================================
+   Tabs & Content
+================================= */
+#tabs { display: none; }
+
+.tab-content { display: none; padding: 15px 0; }
+.tab-content.active { display: block; }
+
+/* Floating Orbs Layer - minimal inline rules (appearance controlled in styles.css) */
+#floating-orbs {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  height: 300px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 9998;
+  overflow: visible;
+}
+
+/* individual orb visuals (size, padding, shape) are defined in styles.css so they
+   can adapt and scale to text; keep minimal positioning helpers here */
+#floating-orbs .letter-box { position: absolute; transform-origin: center; }
+#floating-orbs .letter-box.winner { z-index: 10001; }
+
+/* ================================
+   Optional Glow Animation for Winner
+================================= */
+@keyframes winner-glow {
+  0% { box-shadow: 0 0 10px #ffcc00; }
+  50% { box-shadow: 0 0 25px #ffcc00; }
+  100% { box-shadow: 0 0 10px #ffcc00; }
+}
+
+#floating-orbs .letter-box.winner.glow {
+  animation: winner-glow 1s ease-in-out infinite alternate;
+}
+
+/* temporary suspense highlight used during draw countdown */
+#floating-orbs .letter-box.suspense {
+  box-shadow: 0 0 18px rgba(255,255,255,0.45);
+  transform: scale(1.12);
+}
+
+/* ================================
+   Pop animation (used for tickets/letters)
+================================= */
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+</style>
+</head>
+
+<body class="admin">
+<main>
+  <h2>Admin Panel</h2>
+  <p>Secure access required to manage QR codes and run the Tombola.</p>
+
+  <!-- PIN Entry -->
+  <div id="pin-section">
+    <input type="text" id="adminPin" placeholder="Enter Admin PIN">
+    <div class="button-group">
+      <button id="verifyPin">Verify</button>
+    </div>
+    <p id="pinMsg"></p>
+  </div>
+
+  <!-- Tabs -->
+  <div id="tabs" class="tabs">
+    <div class="button-group">
+      <button class="tab-button active" data-tab="generator-tab">QR Generator</button>
+      <button class="tab-button" data-tab="tombola-tab">Tombola Admin</button>
+      <button class="tab-button" data-tab="orbview-tab">Tombola Draw</button>
+    </div>
+
+    <!-- Generator Tab -->
+    <div id="generator-tab" class="tab-content active">
+      <h3>QR Code Generator</h3>
+      <label for="qrId">Enter Code ID (e.g. QR001):</label>
+      <input id="qrId" type="text" placeholder="QR001">
+      <p />
+      <label for="qrLetter">Letter or Word:</label>
+      <input id="qrLetter" type="text" placeholder="A">
+
+      <div class="button-group">
+        <button id="generate">Generate QR</button>
+        <button id="download">Download QR</button>
+      </div>
+
+      <div id="qrcode"></div>
+      <p id="msg"></p>
+
+      <h3>Current Mappings (Session Only)</h3>
+      <table id="mapTable">
+        <thead><tr><th>QR Code</th><th>Letter</th></tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="button-group">
+        <button id="export">Export Mapping</button>
+      </div>
+      <p id="exportMsg"></p>
+      </div>
+      <!-- ORB View Tab -->
+      <div id="orbview-tab" class="tab-content" style="text-align:center;display:none;">
+        <p style="color:#888;font-size:0.95em;">Live view of all registered ORBs.</p>
+        <div id="floating-orbs" class="orb-container"></div>
+        <div class="button-group">
+          <button id="startDraw">Start Draw</button>
+        </div>
+        <p id="winner-msg"></p>
+      </div>
+
+      <!-- Tombola Tab -->
+      <div id="tombola-tab" class="tab-content">
+        <h3>Tombola Draw</h3>
+        <p>Registered Codes:</p>
+        <textarea id="tombolaCodes" readonly></textarea>
+        <div class="button-group">
+          <button id="resetTombola">Reset Tombola</button>
+        </div>
+        <div id="ticket-list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Confetti canvas -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="../../scripts/app.js"></script>
+<script src="../../scripts/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  const pinSection = document.getElementById("pin-section");
+  const adminPinInput = document.getElementById("adminPin");
+  const verifyPinBtn = document.getElementById("verifyPin");
+  const pinMsg = document.getElementById("pinMsg");
+  const tabsContainer = document.getElementById("tabs");
+  const tabButtons = document.querySelectorAll(".tab-button");
+  const tabContents = document.querySelectorAll(".tab-content");
+
+  const qrId = document.getElementById("qrId");
+  const qrLetter = document.getElementById("qrLetter");
+  const generateBtn = document.getElementById("generate");
+  const downloadBtn = document.getElementById("download");
+  const qrcodeDiv = document.getElementById("qrcode");
+  const msg = document.getElementById("msg");
+  const mapTableBody = document.querySelector("#mapTable tbody");
+  const exportBtn = document.getElementById("export");
+  const exportMsg = document.getElementById("exportMsg");
+
+  const tombolaCodesInput = document.getElementById("tombolaCodes");
+  const startDrawBtn = document.getElementById("startDraw");
+  const resetTombolaBtn = document.getElementById("resetTombola");
+  const ticketList = document.getElementById("ticket-list");
+  const winnerMsg = document.getElementById("winner-msg");
+  const confettiCanvas = document.getElementById("confetti-canvas");
+  const floatingOrbs = document.getElementById("floating-orbs");
+
+  let qrMap = {};
+  // Normalize stored codes to uppercase trimmed values
+  let registeredCodes = (JSON.parse(localStorage.getItem("tombolaCodes") || "[]") || []).map(c => String(c).trim().toUpperCase());
+
+  renderTombolaCodes();
+  notifyOrbView();
+  animateFloatingOrbs();
+  
+  // hide inlined ORBs until ORB View tab is active
+  if (floatingOrbs) floatingOrbs.style.display = "none";
+
+  // =====================
+  // PIN verification
+  // =====================
+  verifyPinBtn.onclick = async () => {
+    const pin = adminPinInput.value.trim();
+    const daily = await generateDailyAdminPin();
+    if (pin === daily) {
+      pinSection.style.display = "none";
+      tabsContainer.style.display = "block";
+    } else {
+      pinMsg.textContent = "⚠️ Invalid PIN.";
+      pinMsg.style.color = "red";
+    }
+  };
+
+  // =====================
+  // Tab switching
+  // =====================
+  tabButtons.forEach(btn => {
+    btn.onclick = () => {
+      const target = btn.dataset.tab;
+      tabContents.forEach(tab => tab.style.display = "none");
+      tabContents.forEach(tab => tab.classList.remove("active"));
+      document.getElementById(target).style.display = "block";
+      document.getElementById(target).classList.add("active");
+      tabButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      // Show ORBs only on ORB View tab
+      if (target === "orbview-tab") {
+        // switch to overlay mode so the ORB area centers and overlays the page
+        floatingOrbs.classList.add('overlay');
+        floatingOrbs.style.display = "block";
+        // Re-render ORBs now the container is visible so placement uses real dimensions
+        notifyOrbView();
+      } else {
+        floatingOrbs.classList.remove('overlay');
+        floatingOrbs.style.display = "none";
+      }
+    };
+  });
+
+  // =====================
+  // QR Generator
+  // =====================
+  let currentDataUrl = null;
+  generateBtn.onclick = () => {
+    const id = qrId.value.trim();
+    const letter = qrLetter.value.trim();
+    if (!id || !letter) { msg.textContent = "⚠️ Please enter both a code ID and letter."; return; }
+
+    qrcodeDiv.innerHTML = "";
+    const qrSize = Math.min(window.innerWidth * 0.8, 300);
+    new QRCode(qrcodeDiv, { text: id, width: qrSize, height: qrSize });
+
+    msg.textContent = `✅ QR code created for ${id} → ${letter}`;
+    qrMap[id] = letter;
+    renderTable();
+    setTimeout(() => { const canvas = qrcodeDiv.querySelector("canvas"); if (canvas) currentDataUrl = canvas.toDataURL("image/png"); }, 500);
+  };
+
+  downloadBtn.onclick = () => {
+    if (!currentDataUrl) { msg.textContent = "⚠️ Generate a QR code first."; return; }
+    const id = qrId.value.trim() || "qr_code";
+    const link = document.createElement("a");
+    link.href = currentDataUrl;
+    link.download = id + ".png";
+    link.click();
+  };
+
+  function renderTable() {
+    mapTableBody.innerHTML = "";
+    Object.entries(qrMap).forEach(([id, letter]) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${id}</td><td>${letter}</td>`;
+      mapTableBody.appendChild(row);
+    });
+  }
+
+  // Notify ORB view (inlined) to update
+  function notifyOrbView() {
+    // When ORB view is inlined, render directly
+    const orbContainer = document.getElementById('orbview-tab').querySelector('#floating-orbs');
+    if (orbContainer) {
+      // If the container hasn't been laid out yet its clientWidth/height may be 0.
+      // Defer to the next animation frame so the browser can apply layout after
+      // switching to overlay/display: block. This ensures accurate placement.
+      if ((orbContainer.clientWidth || orbContainer.clientHeight) === 0) {
+        requestAnimationFrame(() => renderFloatingOrbsInContainer(orbContainer));
+      } else {
+        renderFloatingOrbsInContainer(orbContainer);
+      }
+    }
+  }
+
+  exportBtn.onclick = () => {
+    if (Object.keys(qrMap).length === 0) { exportMsg.textContent = "⚠️ No mappings to export."; return; }
+    const blob = new Blob([JSON.stringify(qrMap, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "qr-map.json";
+    link.click();
+    exportMsg.textContent = "✅ Mapping exported as qr-map.json";
+  };
+
+
+  // =====================
+  // Tombola Draw
+  // =====================
+  function renderTombolaCodes() {
+    tombolaCodesInput.value = registeredCodes.join("\n");
+    ticketList.innerHTML = "";
+    registeredCodes.forEach(code => {
+      const t = document.createElement("div");
+      t.className = "ticket";
+      t.textContent = code;
+      ticketList.appendChild(t);
+    });
+    notifyOrbView();
+  }
+
+  function renderFloatingOrbs() {
+    // keep for backward-compat; do nothing when using inlined renderer
+  }
+
+  function renderFloatingOrbsInContainer(container) {
+    container.innerHTML = "";
+    const placedOrbs = [];
+    const buffer = 20;
+    // Compute available area for placement. If container hasn't been laid out yet
+    // clientWidth/clientHeight may be 0 — fall back to a sensible default (900x900
+    // or most of the viewport) so orbs don't all collapse to (0,0).
+    const availableW = container.clientWidth || Math.min(window.innerWidth * 0.95, 900);
+    const availableH = container.clientHeight || Math.min(window.innerHeight * 0.85, 900);
+    registeredCodes.forEach(code => {
+      const orb = document.createElement("div");
+      orb.className = "letter-box orb-dynamic";
+      orb.textContent = code;
+      // random color (HSL) and readable text color
+      const hue = Math.floor(Math.random() * 360);
+      const sat = 60 + Math.floor(Math.random() * 21); // 60-80%
+      const light = 40 + Math.floor(Math.random() * 21); // 40-60%
+      orb.style.backgroundColor = `hsl(${hue}, ${sat}%, ${light}%)`;
+      orb.style.color = (light > 60 ? '#000' : '#fff');
+
+      // Append hidden to measure its real size (text may make it wider than nominal)
+      orb.style.visibility = 'hidden';
+      // use transform for animation later; left/top are used only for measurement
+      orb.style.left = '0px';
+      orb.style.top = '0px';
+      container.appendChild(orb);
+
+      const orbW = Math.max(60, orb.offsetWidth);
+      const orbH = Math.max(60, orb.offsetHeight);
+
+      let tries = 0;
+      let left, top, collides;
+      do {
+        left = Math.random() * Math.max(0, (availableW - orbW));
+        top = Math.random() * Math.max(0, (availableH - orbH));
+        const centerLeft = left + orbW / 2;
+        const centerTop = top + orbH / 2;
+        collides = placedOrbs.some(o => {
+          const dx = o.centerLeft - centerLeft;
+          const dy = o.centerTop - centerTop;
+          return Math.sqrt(dx*dx + dy*dy) < (Math.max(o.w, orbW) + buffer);
+        });
+        tries++;
+      } while (collides && tries < 300);
+
+      // Position using transform so future animation uses GPU compositing.
+      // Keep left/top at 0 so translate values are exact coordinates (avoid doubling).
+      orb.style.left = `0px`;
+      orb.style.top = `0px`;
+      orb.style.visibility = 'visible';
+      // initialize transform translate to the position and set internal position state
+      orb._x = left; orb._y = top;
+      orb.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+      // velocity state for smooth motion
+      orb._vx = (Math.random() - 0.5) * 0.6;
+      orb._vy = (Math.random() - 0.5) * 0.6;
+      placedOrbs.push({centerLeft: left + orbW / 2, centerTop: top + orbH / 2, w: orbW, h: orbH, el: orb});
+    });
+    // clear previous highlights
+    const winnerMsgElem = document.querySelector('#orbview-tab #winner-msg');
+    if (winnerMsgElem) winnerMsgElem.textContent = '';
+    container.querySelectorAll('.letter-box').forEach(o => o.classList.remove('winner', 'glow'));
+  }
+
+  function animateFloatingOrbs() {
+    const orbs = Array.from(document.querySelectorAll("#floating-orbs .letter-box:not(.winner)"));
+    const dt = 1; // timestep scalar for damping
+    orbs.forEach(orb => {
+      // ignore orbs moved to fixed positioning (winners)
+      if (getComputedStyle(orb).position === 'fixed') return;
+      // read base left/top (set during render) as bounds reference
+      const baseLeft = parseFloat(orb.style.left) || 0;
+      const baseTop = parseFloat(orb.style.top) || 0;
+      // fall back to overlay size if parent isn't laid out yet
+      const parentW = orb.parentElement.clientWidth || Math.min(window.innerWidth * 0.95, 900);
+      const parentH = orb.parentElement.clientHeight || Math.min(window.innerHeight * 0.85, 900);
+      // velocity nudges
+      orb._vx += (Math.random() - 0.5) * 0.2;
+      orb._vy += (Math.random() - 0.5) * 0.2;
+      // apply damping
+      orb._vx *= 0.95;
+      orb._vy *= 0.95;
+      // compute new position
+      let x = (orb._x || baseLeft) + orb._vx * dt;
+      let y = (orb._y || baseTop) + orb._vy * dt;
+      const orbW = orb.offsetWidth;
+      const orbH = orb.offsetHeight;
+      // clamp to container bounds
+      x = Math.max(0, Math.min(parentW - orbW, x));
+      y = Math.max(0, Math.min(parentH - orbH, y));
+      orb._x = x; orb._y = y;
+      // apply transform - translate3d uses GPU compositing and avoids layout thrashing
+      orb.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    });
+    requestAnimationFrame(animateFloatingOrbs);
+  }
+
+  function runConfetti() {
+    const myConfetti = confetti.create(confettiCanvas, { resize: true });
+    myConfetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
+    setTimeout(() => confettiCanvas.getContext('2d')?.clearRect(0,0,confettiCanvas.width,confettiCanvas.height), 5000);
+  }
+
+  // Listen for storage updates so the ORB view refreshes when registrations
+  // are added from other tabs/windows (e.g., registration page).
+  window.addEventListener('storage', (ev) => {
+    if (ev.key === 'tombolaCodes') {
+      try {
+        registeredCodes = (JSON.parse(ev.newValue || '[]') || []).map(c => String(c).trim().toUpperCase());
+      } catch (e) {
+        registeredCodes = [];
+      }
+      renderTombolaCodes();
+      // If ORB tab is active, update it immediately
+      const activeTab = document.querySelector('.tab-button.active')?.dataset.tab;
+      if (activeTab === 'orbview-tab') notifyOrbView();
+    }
+  });
+
+  startDrawBtn.onclick = () => {
+    startDrawBtn.disabled = true;
+    try { localStorage.setItem('tombolaLocked', '1'); } catch(e) {}
+
+    if (!registeredCodes.length) {
+      winnerMsg.textContent = "⚠️ No registered codes.";
+      try { localStorage.removeItem('tombolaLocked'); } catch(e) {}
+      if (startDrawBtn) startDrawBtn.disabled = false;
+      return;
+    }
+
+    winnerMsg.textContent = 'Drawing... please wait';
+
+    const orbs = Array.from(document.querySelectorAll('#floating-orbs .letter-box'));
+    const suspensionDuration = 15000; // ms
+    const tickInterval = 200; // ms highlight tick
+    let tickTimer = null;
+    let startTime = Date.now();
+
+    function clearSuspense() {
+      if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+      orbs.forEach(o => o.classList.remove('suspense'));
+    }
+
+    tickTimer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= suspensionDuration) { clearSuspense(); startCountdown(); return; }
+      orbs.forEach(o => o.classList.remove('suspense'));
+      const count = Math.max(1, Math.floor(Math.random() * Math.min(3, orbs.length)));
+      for (let i = 0; i < count; i++) {
+        const idx = Math.floor(Math.random() * orbs.length);
+        orbs[idx].classList.add('suspense');
+      }
+    }, tickInterval);
+
+    function startCountdown() {
+      let n = 5;
+      winnerMsg.textContent = `Revealing in ${n}...`;
+      const countdown = setInterval(() => {
+        n--;
+        if (n > 0) {
+          winnerMsg.textContent = `Revealing in ${n}...`;
+          orbs.forEach(o => o.classList.remove('suspense'));
+          const idx = Math.floor(Math.random() * orbs.length);
+          orbs[idx].classList.add('suspense');
+        } else {
+          clearInterval(countdown);
+          const winner = registeredCodes[Math.floor(Math.random() * registeredCodes.length)];
+          revealWinner(winner);
+        }
+      }, 1000);
+    }
+
+    function revealWinner(winner) {
+      // finalize
+      winnerMsg.textContent = `🎉 Winner: ${winner}`;
+      ticketList.querySelectorAll('.ticket').forEach(t => t.classList.remove('winner'));
+      const winnerDiv = Array.from(ticketList.children).find(t => t.textContent === winner);
+      if (winnerDiv) winnerDiv.classList.add('winner');
+
+      const winnerOrb = Array.from(document.querySelectorAll('#floating-orbs .letter-box')).find(orb => orb.textContent === winner);
+      if (winnerOrb) {
+        document.querySelectorAll('#floating-orbs .letter-box.centered').forEach(o => o.classList.remove('centered'));
+        winnerOrb.classList.add('winner', 'glow', 'centered');
+        const parent = winnerOrb.parentElement;
+        const parentW = parent.clientWidth || Math.min(window.innerWidth * 0.95, 900);
+        const parentH = parent.clientHeight || Math.min(window.innerHeight * 0.85, 900);
+        const cx = (parentW) / 2 - (winnerOrb.offsetWidth / 2);
+        const cy = (parentH) / 2 - (winnerOrb.offsetHeight / 2);
+        winnerOrb._vx = 0; winnerOrb._vy = 0;
+        winnerOrb.style.left = '0px'; winnerOrb.style.top = '0px';
+        winnerOrb._x = cx; winnerOrb._y = cy;
+        winnerOrb.style.transform = `translate3d(${cx}px, ${cy}px, 0) scale(1.9)`;
+      }
+
+      runConfetti();
+      clearSuspense();
+      // keep the tombolaLocked flag in storage until admin presses Reset
+      // do not re-enable Start Draw here — Reset will clear the lock and re-enable
+    }
+  };
+
+  resetTombolaBtn.onclick = async () => {
+    const pin = prompt("Enter Admin PIN to reset Tombola:");
+    const daily = await generateDailyAdminPin();
+    if (pin !== daily) { alert("Invalid PIN. Cannot reset."); return; }
+    registeredCodes = [];
+    localStorage.setItem("tombolaCodes", JSON.stringify(registeredCodes));
+    try { localStorage.removeItem('tombolaLocked'); } catch(e) {}
+    renderTombolaCodes();
+      notifyOrbView();
+      animateFloatingOrbs();
+    // re-enable Start Draw after reset
+    if (startDrawBtn) startDrawBtn.disabled = false;
+    winnerMsg.textContent = "";
+  };
+});
+</script>
+</body>
+</html>

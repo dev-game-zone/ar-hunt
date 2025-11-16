@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scavenger Hunt – QR Generator</title>
+  <link rel="stylesheet" href="../../styles/styles.css">
+  <link rel="icon" type="image/png" href="../../favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="generator">
+<main>
+  <h2>QR Code Generator</h2>
+  <p>
+    Generate QR codes mapped to letters for your scavenger hunt.
+    This tool runs entirely in your browser – nothing is uploaded or stored.
+  </p>
+
+  <label>
+    Enter Code ID (e.g. QR001):
+    <input id="qrId" type="text" placeholder="QR001">
+  </label>
+
+  <label>
+    Letter or Word:
+    <input id="qrLetter" type="text" placeholder="A">
+  </label>
+
+  <div class="button-group">
+    <button id="generate">Generate QR</button>
+    <button id="download">Download QR</button>
+  </div>
+
+  <div id="qrcode"></div>
+  <p id="msg"></p>
+
+  <hr>
+
+  <h3>Current Mappings (Session Only)</h3>
+  <table id="mapTable">
+    <thead>
+      <tr><th>QR Code</th><th>Letter</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <p/>
+
+  <div class="button-group">
+    <button id="export">Export Mapping</button>
+    <button id="back">Back to Access Page</button>
+  </div>
+
+  <p id="exportMsg"></p>
+</main>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="../../scripts/config.js"></script>
+<script src="../../scripts/app.js"></script>
+
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  const qrId = document.getElementById("qrId");
+  const qrLetter = document.getElementById("qrLetter");
+  const generateBtn = document.getElementById("generate");
+  const downloadBtn = document.getElementById("download");
+  const qrcodeDiv = document.getElementById("qrcode");
+  const msg = document.getElementById("msg");
+  const mapTableBody = document.querySelector("#mapTable tbody");
+  const exportBtn = document.getElementById("export");
+  const exportMsg = document.getElementById("exportMsg");
+  const backBtn = document.getElementById("back");
+
+  let currentDataUrl = null;
+  let qrMap = {};
+
+  generateBtn.onclick = () => {
+    const id = qrId.value.trim();
+    const letter = qrLetter.value.trim();
+    if (!id || !letter) {
+      msg.textContent = "⚠️ Please enter both a code ID and letter.";
+      return;
+    }
+
+    qrcodeDiv.innerHTML = "";
+    const qrSize = Math.min(window.innerWidth * 0.8, 300);
+
+    new QRCode(qrcodeDiv, {
+      text: id,
+      width: qrSize,
+      height: qrSize,
+    });
+
+    msg.textContent = `✅ QR code created for ${id} → ${letter}`;
+    qrMap[id] = letter;
+    renderTable();
+
+    setTimeout(() => {
+      const canvas = qrcodeDiv.querySelector("canvas");
+      if (canvas) currentDataUrl = canvas.toDataURL("image/png");
+    }, 500);
+  };
+
+  downloadBtn.onclick = () => {
+    if (!currentDataUrl) {
+      msg.textContent = "⚠️ Generate a QR code first.";
+      return;
+    }
+    const id = qrId.value.trim() || "qr_code";
+    const link = document.createElement("a");
+    link.href = currentDataUrl;
+    link.download = id + ".png";
+    link.click();
+  };
+
+  function renderTable() {
+    mapTableBody.innerHTML = "";
+    Object.entries(qrMap).forEach(([id, letter]) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${id}</td><td>${letter}</td>`;
+      mapTableBody.appendChild(row);
+    });
+  }
+
+  exportBtn.onclick = () => {
+    if (Object.keys(qrMap).length === 0) {
+      exportMsg.textContent = "⚠️ No mappings to export.";
+      return;
+    }
+    const blob = new Blob([JSON.stringify(qrMap, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "qr-map.json";
+    link.click();
+    exportMsg.textContent = "✅ Mapping exported as qr-map.json";
+  };
+
+  backBtn.onclick = () => {
+    window.location.href = CONFIG.BASE_PATH + "index.html";
+  };
+});
+</script>
+</body>
+</html>

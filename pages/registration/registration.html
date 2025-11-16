@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scavenger Hunt – Registration</title>
+  <link rel="stylesheet" href="../../styles/styles.css">
+  <link rel="icon" type="image/png" href="../../favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Center-align text in registration inputs */
+    body.register input[type="text"],
+    body.register input[type="password"] {
+      text-align: center;
+    }
+  </style>
+</head>
+<body class="register">
+<main>
+  <h2>Player Registration</h2>
+  <p>Enter your name and your unique code. Admin verification required.</p>
+
+  <input type="text" id="playerName" placeholder="Your Name" autocomplete="off">
+  <input type="text" id="playerCode" placeholder="Your Code" autocomplete="off">
+  <input type="password" id="adminPin" placeholder="Admin PIN" autocomplete="off">
+
+  <div class="button-group">
+    <button id="registerBtn">Register</button>
+  </div>
+
+  <p id="registerMsg"></p>
+</main>
+
+<script src="../../scripts/config.js"></script>
+<script src="../../scripts/app.js"></script>
+<script>
+// UI lock handling
+function setRegistrationLocked(locked) {
+  const inputs = [document.getElementById('playerName'), document.getElementById('playerCode'), document.getElementById('adminPin')];
+  inputs.forEach(i => { if (i) i.disabled = !!locked; });
+  const btn = document.getElementById('registerBtn');
+  if (btn) btn.disabled = !!locked;
+  const msg = document.getElementById('registerMsg');
+  if (locked) {
+    msg.textContent = '🔒 Registration locked while a draw is active.';
+    msg.style.color = 'orange';
+  } else {
+    msg.textContent = '';
+  }
+}
+
+// initialize lock state on load
+setRegistrationLocked(!!localStorage.getItem('tombolaLocked'));
+
+// react to storage events (draw started or reset in another tab)
+window.addEventListener('storage', (ev) => {
+  if (ev.key === 'tombolaLocked') {
+    setRegistrationLocked(!!ev.newValue);
+  }
+});
+
+document.getElementById("registerBtn").onclick = async () => {
+  const name = document.getElementById("playerName").value.trim();
+  const code = document.getElementById("playerCode").value.trim();
+  const pin = document.getElementById("adminPin").value.trim();
+  const msg = document.getElementById("registerMsg");
+
+  if (!name || !code || !pin) {
+    msg.textContent = "⚠️ Fill all fields.";
+    msg.style.color = "red";
+    return;
+  }
+
+  const dailyPin = await generateDailyAdminPin();
+  if (pin !== dailyPin) {
+    msg.textContent = "⚠️ Invalid Admin PIN.";
+    msg.style.color = "red";
+    return;
+  }
+
+  // Normalize code (case-insensitive) and prevent duplicates
+  const regs = JSON.parse(localStorage.getItem("tombolaCodes") || "[]");
+  const normalizedExisting = regs.map(r => String(r).trim().toUpperCase());
+  const codeNorm = code.trim().toUpperCase();
+  if (normalizedExisting.includes(codeNorm)) {
+    msg.textContent = `⚠️ Code ${codeNorm} is already registered.`;
+    msg.style.color = "red";
+    return;
+  }
+  regs.push(codeNorm);
+  localStorage.setItem("tombolaCodes", JSON.stringify(regs));
+
+  msg.textContent = `✅ Registered ${name} with code ${codeNorm}`;
+  msg.style.color = "green";
+
+  // Clear inputs
+  document.getElementById("playerName").value = "";
+  document.getElementById("playerCode").value = "";
+  document.getElementById("adminPin").value = "";
+};
+
+// Keep the input visually uppercase via CSS, but don't change the user's typed value.
+// Deduplication and storage use an uppercased normalization on save, so we don't
+// modify the user's original input while they type.
+</script>
+</body>
+</html>
